@@ -4,6 +4,8 @@ import { Eye, EyeOff, Lock, Mail, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 
 import BrandLogo from "@/components/brand/BrandLogo";
 
@@ -12,11 +14,14 @@ interface LoginForm {
   password: string;
 }
 
+
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState<LoginForm>({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showResetMessage, setShowResetMessage] = useState(false);
+  const { openConnectModal } = useConnectModal();
+  const { address, isConnected } = useAccount();
 
   function updateField(field: keyof LoginForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -111,10 +116,15 @@ export default function LoginPage() {
         <button
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-agri-border py-2.5 text-sm font-medium text-agri-text hover:bg-agri-raised"
           type="button"
-          onClick={() => router.push("/onboarding")}
+         onClick={() => {
+            if (isConnected) return;
+            openConnectModal?.();
+          }}
         >
           <Wallet className="h-4 w-4" />
-          Connect Web3 Wallet
+         {isConnected && address
+            ? `${address.slice(0, 6)}...${address.slice(-4)}`
+            : "Connect Web3 Wallet"}
         </button>
 
         <p className="mt-4 text-center text-sm text-agri-muted">
