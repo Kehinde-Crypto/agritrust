@@ -2,9 +2,11 @@
 
 import { BarChart3, ShieldCheck, Sprout, Truck, type LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 
 import BrandLogo, { BrandName } from "@/components/brand/BrandLogo";
+import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@/types";
 
 interface RoleCard {
@@ -69,6 +71,53 @@ const roles: RoleCard[] = [
 export default function OnboardingPage() {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { address } = useAccount();
+
+    useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        router.push("/login");
+      }
+    }
+    checkSession();
+  }, [router]);
+
+  async function handleContinue() {
+    if (!selectedRole) return;
+
+    setError(null);
+    setIsSaving(true);
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !userData.user) {
+      setError("You must be signed in to continue.");
+      setIsSaving(false);
+      return;
+    }
+
+    const user = userData.user;
+
+    const { error: upsertError } = await supabase.from("users").upsert({
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name ?? null,
+      role: selectedRole,
+      wallet_address: address ?? null,
+    });
+   setIsSaving(false);
+
+    if (upsertError) {
+      setError(upsertError.message);
+      return;
+    }
+
+    router.push("/dashboard");
+  }
+
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-agri-base px-4 py-12">

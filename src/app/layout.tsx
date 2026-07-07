@@ -37,7 +37,7 @@ export default function RootLayout({
       className={`${outfit.variable} ${inter.variable} ${jetBrainsMono.variable} h-full antialiased`}
     >
       <body className={`${inter.className} min-h-full bg-agri-base text-agri-text`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
