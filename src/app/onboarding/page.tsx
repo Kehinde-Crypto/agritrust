@@ -134,6 +134,12 @@ export default function OnboardingPage() {
       <p className="mb-8 mt-1 text-center text-sm text-agri-muted">
         Select the workspace that best matches how you use AgriTrust.
       </p>
+      
+       {error ? (
+        <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+          {error}
+        </p>
+      ) : null}
 
       <div className="mx-auto flex max-w-3xl flex-wrap justify-center gap-4">
         {roles.map(({ role, icon: Icon, color, bg, border, glow, selectedGlow, title, description }) => {
@@ -165,14 +171,11 @@ export default function OnboardingPage() {
             : "cursor-not-allowed bg-accent-blue/50 opacity-50"
         }`}
         type="button"
-        disabled={!selectedRole}
-        onClick={() => {
-          if (selectedRole) {
-            router.push("/dashboard");
-          }
-        }}
+        disabled={!selectedRole || isSaving}
+        onClick={handleContinue}
+      
       >
-        Continue
+        {isSaving ? "Saving ..." : "Continue"}
       </button>
 
       <p className="mt-4 text-center text-xs text-agri-muted">You can update your role later in settings.</p>
