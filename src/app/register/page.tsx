@@ -40,44 +40,94 @@ export default function RegisterPage() {
   }
 
 
+  // async function handleCreateAccount() {
+  //   setError(null);
+  
+
+  //   if (form.password !== form.confirmPassword) {
+  //     setError("Passwords do not match");
+  //     return;
+  //   }
+  //   if (form.password.length < 6) {
+  //     setError("Password must be at least 6 characters");
+  //     return;
+  //   }
+  //   setIsSubmitting(true);
+
+  //   const { data, error: signUpError } = await supabase.auth.signUp({
+  //     email: form.email,
+  //     password: form.password,
+  //     options: {
+  //       data: {
+  //         full_name: form.fullName,
+  //         phone: form.phone,
+  //       },
+  //     },
+  //   });
+
+  //   setIsSubmitting(false);
+
+
+  //   if (signUpError) {
+  //     setError(signUpError.message);
+  //     return;
+  //   }
+
+  //   // Role selection and profile completion happens on the onboarding page.
+  //   // We pass the new user's id along so onboarding can insert the users row.
+  //   router.push("/onboarding");
+  // }
+
   async function handleCreateAccount() {
     setError(null);
-  
 
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
+
     if (form.password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
     }
+
     setIsSubmitting(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    // Create the user via our server-side admin route (bypasses confirmation email)
+    const signupResponse = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        fullName: form.fullName,
+        phone: form.phone,
+      }),
+    });
+
+    const signupResult = await signupResponse.json();
+
+    if (!signupResponse.ok) {
+      setError(signupResult.error ?? "Failed to create account");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Now sign in normally on the client, so a real session is established
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
-      options: {
-        data: {
-          full_name: form.fullName,
-          phone: form.phone,
-        },
-      },
     });
 
     setIsSubmitting(false);
 
-
-    if (signUpError) {
-      setError(signUpError.message);
+    if (signInError) {
+      setError(signInError.message);
       return;
     }
 
-    // Role selection and profile completion happens on the onboarding page.
-    // We pass the new user's id along so onboarding can insert the users row.
     router.push("/onboarding");
   }
-
 
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-agri-base px-4 py-10">
