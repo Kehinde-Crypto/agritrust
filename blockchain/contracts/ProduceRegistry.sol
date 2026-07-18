@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
-
+import "./interfaces/IRoleRegistry.sol";
 contract ProduceRegistry {
     enum BatchStatus {
         REGISTERED,
@@ -9,7 +9,7 @@ contract ProduceRegistry {
         DELIVERED,
         FLAGGED
     }
-
+ enum Role { NONE, FARMER, INSPECTOR, DISTRIBUTOR, REGULATOR }
     struct Batch {
         string batchId;
         string farmId;
@@ -22,7 +22,8 @@ contract ProduceRegistry {
         address registeredBy;
     }
 
-    address public owner;
+    address public immutable owner;
+   IRoleRegistry public immutable roleRegistry;
 
     // Addresses of the two sibling contracts allowed to call updateBatchStatus
     address public complianceRegistry;
@@ -31,6 +32,9 @@ contract ProduceRegistry {
     mapping(string => Batch) private batches;
     mapping(string => bool) private batchExists;
     mapping(string => string[]) private farmBatches;
+    mapping(address => Role) public roles;
+
+    event RoleAssigned(address indexed account, Role role);
 
     address[] private regulators;
     mapping(address => bool) private isRegulator;
@@ -38,11 +42,13 @@ contract ProduceRegistry {
     event BatchRegistered(
         string batchId,
         string farmId,
-        address registeredBy,
+        address indexed registeredBy,
         uint256 registeredAt
     );
     event BatchStatusChanged(string batchId, BatchStatus newStatus);
     event BatchFlagged(string batchId, string reason);
+    event ComplianceRegistryUpdated(address indexed newRegistry);
+    event SupplyChainLedgerUpdated(address indexed newLedger);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not contract owner");
@@ -61,24 +67,48 @@ contract ProduceRegistry {
         );
         _;
     }
+    modifier onlyFarmer() {
+    require(roleRegistry.hasRole(msg.sender, IRoleRegistry.Role.FARMER), "Caller is not a farmer");
+    _;
+}
 
-    constructor() {
-        owner = msg.sender;
-    }
+   
+
+    constructor(address _roleRegistry) {
+    owner = msg.sender;
+    roleRegistry = IRoleRegistry(_roleRegistry);
+}
+
+
 
     // --- Setup functions (called once after all three contracts are deployed) ---
 
-    function setComplianceRegistry(address _complianceRegistry) external onlyOwner {
-        complianceRegistry = _complianceRegistry;
+    function setComplianceRegistry(address newComplianceRegistry) external onlyOwner {
+         require(newComplianceRegistry != address(0) , "Zero address not allowed");
+         complianceRegistry = newComplianceRegistry;
+         emit ComplianceRegistryUpdated(newComplianceRegistry);
     }
 
-    function setSupplyChainLedger(address _supplyChainLedger) external onlyOwner {
-        supplyChainLedger = _supplyChainLedger;
+    function setSupplyChainLedger(address newSupplyChainLedger) external onlyOwner {
+       require(newSupplyChainLedger != address(0) , "Zero address not allowed");
+        supplyChainLedger = newSupplyChainLedger;
+       emit SupplyChainLedgerUpdated(newSupplyChainLedger);
     }
 
     function addRegulator(address account) external onlyOwner {
         isRegulator[account] = true;
         regulators.push(account);
+    }
+
+
+function hasRole(address account, Role role) external view returns (bool) {
+        return roles[account] == role;
+    }
+
+    function assignRole(address account, Role role) external onlyOwner {
+        require(account != address(0), "Zero address not allowed");
+        roles[account] = role;
+        emit RoleAssigned(account, role);
     }
 
     // --- Core functions ---

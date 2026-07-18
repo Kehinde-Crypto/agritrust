@@ -45,8 +45,8 @@ contract ComplianceRegistry {
         address issuedBy;
     }
 
-    address public owner;
-    IProduceRegistry public produceRegistry;
+    address public immutable owner;
+    IProduceRegistry public  immutable produceRegistry;
 
     mapping(address => bool) private inspectors;
     mapping(address => bool) private regulators;
@@ -69,7 +69,7 @@ contract ComplianceRegistry {
     event CertificateIssued(
         string certId,
         string batchId,
-        address issuedBy,
+        address indexed issuedBy,
         uint256 issuedAt
     );
     event CertificateRevoked(string certId, string batchId, string reason);
